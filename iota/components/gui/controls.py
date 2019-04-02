@@ -480,6 +480,63 @@ class TextCtrlWithButtons(CtrlBase):
     main_sizer.AddGrowableCol(1)
     self.SetSizer(main_sizer)
 
+class PHILStringCtrl(CtrlBase):
+  def __init__(self, parent,
+               label='',
+               label_size=(100, -1),
+               label_style='normal',
+               value=''):
+
+    CtrlBase.__init__(self, parent=parent, label_style=label_style)
+
+    self.value = value
+
+    output_box = wx.FlexGridSizer(1, 2, 0, 10)
+    self.txt = wx.StaticText(self, label=label, size=label_size)
+    self.txt.SetFont(self.font)
+    output_box.Add(self.txt)
+
+    self.ctr = strctrl.StrCtrl(self)
+    self.ctr.SetValue(self.value)
+    output_box.Add(self.ctr, flag=wx.EXPAND)
+
+    output_box.AddGrowableCol(1, 1)
+    self.SetSizer(output_box)
+
+class PHILInputCtrl(CtrlBase):
+  def __init__(self, parent,
+               label='', label_size=(100, -1),
+               label_style='normal',
+               value=''):
+
+    CtrlBase.__init__(self, parent=parent, label_style=label_style)
+
+    self.value = value
+
+    output_box = wx.FlexGridSizer(1, 2, 0, 10)
+    self.txt = wx.StaticText(self, label=label, size=label_size)
+    self.txt.SetFont(self.font)
+    output_box.Add(self.txt)
+
+    self.ctr = path.PathCtrl(self, style=path.WXTBX_PHIL_PATH_DIRECTORY|
+                                         path.WXTBX_PHIL_PATH_VIEW_BUTTON|
+                                         path.WXTBX_PHIL_PATH_UPDATE_ON_KILL_FOCUS|
+                                         path.WXTBX_PHIL_PATH_DEFAULT_CWD)
+    self.ctr.SetValue(self.value)
+    output_box.Add(self.ctr, flag=wx.EXPAND)
+
+    # self.btn_browse = wx.Button(self, label='Browse...')
+    # viewmag_bmp = bitmaps.fetch_icon_bitmap('actions', 'viewmag', size=16)
+    # self.btn_mag = wx.BitmapButton(self, bitmap=viewmag_bmp)
+    # output_box.Add(self.btn_browse, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+    # output_box.Add(self.btn_mag, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+
+    output_box.AddGrowableCol(1, 1)
+    self.SetSizer(output_box)
+
+  def reset_default(self):
+    self.ctr.SetValue(self.value)
+
 class InputCtrl(CtrlBase):
   """ Generic panel that will place a text control with a label """
 
@@ -1537,6 +1594,7 @@ class TableCtrl(CtrlBase):
     self.SetSizer(self.sizer)
 
 
+
 class RichTextTableCtrl(CtrlBase):
   """ Generic panel will place a table w/ x and y labels
       Data must be a list of lists for multi-column tables """
@@ -1644,22 +1702,32 @@ class WidgetFactory(object):
 
   @staticmethod
   def make_widget(parent, object, label):
+
+
     wtype = object.type.phil_type
     wstyle = object.style
+
+    label = label.replace('_', ' ').capitalize() + ": "
 
     if wtype == 'path':  # Two styles only: single line w/ Browse, or input list
       if wstyle == 'input_list':
         widget = FileListCtrl(parent=parent)
       else:
-        widget = InputCtrl(parent=parent, label=label, buttons=True)
-    elif wtype in ('str', 'unit_cell', 'space_group'):
-      widget = InputCtrl(parent=parent, label=label, buttons=False)
+        widget = PHILInputCtrl(parent=parent, label=label)
+
+    elif wtype == 'str':
+      item = ' '.join([w.value for w in object.words])
+      widget = PHILStringCtrl(parent=parent, label=label, value=item)
+
     elif wtype == 'choice':
-      widget = ChoiceCtrl(parent=parent, choices=['blah', 'bleh', 'pfui'],
-                          label=label)
+      choices = [w.value for w in object.words]
+      widget = PHILChoiceCtrl(parent=parent, choices=choices, label=label,
+                              allow_none=False)
     elif wtype in ('int', 'float'):
       widget = SpinCtrl(parent=parent, label=label)
     elif wtype == 'bool':
       widget = wx.CheckBox(parent=parent, label=label)
+    else:
+      widget = InputCtrl(parent=parent, label=label, buttons=False)
 
     return widget

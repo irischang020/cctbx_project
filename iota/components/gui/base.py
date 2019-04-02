@@ -236,6 +236,14 @@ class IOTABasePanel(wx.Panel):
       self.main_sizer = wx.StaticBoxSizer(panel_box, wx.VERTICAL)
     else:
       self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+
+class IOTABaseScrolledPanel(ScrolledPanel):
+  def __init__(self, parent, *args, **kwargs):
+    ScrolledPanel.__init__(self, parent=parent, id=wx.ID_ANY, size=(800, 500),
+                          *args, **kwargs)
+
+    self.main_sizer = wx.BoxSizer(wx.VERTICAL)
     self.SetSizer(self.main_sizer)
 
 class IOTABaseScrolledPanel(ScrolledPanel):
@@ -415,6 +423,51 @@ class BaseOptionsDialog(IOTABaseDialog):
                         border=10)
 
     self.Layout()
+
+
+class PHILPanelFactory(IOTABaseScrolledPanel):
+  """ Factory class for dialog panel automatically created from PHIL
+  settings """
+
+  def __init__(self, parent, objects, layers=None, *args, **kwargs):
+    IOTABaseScrolledPanel.__init__(self, parent=parent, *args, **kwargs)
+
+    self.layers = layers
+
+    for obj in objects:
+      if type(obj) in (list, tuple):
+        pass
+      elif obj.is_scope:
+        self.add_scope_box(obj=obj)
+      elif obj.is_definition:
+        self.add_definition_control(self, obj)
+
+    self.SetupScrolling()
+
+
+
+  def get_all_path_names(self, phil_object, paths=None):
+    if paths is None:
+      paths = []
+    if phil_object.is_scope:
+      for object in phil_object.objects:
+        paths = self.get_all_path_names(object, paths)
+        paths.extend(paths)
+    elif phil_object.is_definition:
+      full_path = phil_object.full_path()
+      if not full_path in paths:
+        paths.append(full_path)
+    return paths
+
+  def add_definition_control(self, parent, obj):
+    alias = obj.alias_path()
+    label = alias if alias else obj.full_path().split('.')[-1]
+
+    wdg = ct.WidgetFactory.make_widget(parent, obj, label)
+    sizer = parent.GetSizer()
+    sizer.Add(wdg, flag=wx.RIGHT|wx.LEFT|wx.BOTTOM|wx.EXPAND,
+                        border=5)
+    self.__setattr__(label, wdg)
 
 class Menu(wx.Menu):
   """ Customizable context menu for IOTA GUI (based on the base Menu class
