@@ -7,6 +7,7 @@ Created     : 05/01/2016
 Last Changed: 06/07/2019
 Description : PRIME GUI frames module
 '''
+from __future__ import print_function
 
 import os
 import wx
