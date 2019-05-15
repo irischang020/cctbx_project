@@ -7,8 +7,9 @@ Last Changed: 04/02/2019
 Description : IOTA GUI initialization module
 '''
 
+import sys
+
 import wx
-from wxtbx import wx4_compatibility as wx4c
 
 from libtbx import Auto
 from libtbx.utils import Sorry, to_unicode, to_str
@@ -46,6 +47,7 @@ class IOTAPHILCtrl(object):
     self.expert_level = phil_object.expert_level
     if self.expert_level is None:
       self.expert_level = 0
+
 
   def __str__(self):
     return type(self).__name__ + (" ({})".format(self.name))
@@ -282,12 +284,9 @@ class WidgetHandlerMixin(object):
   def __str__(self):
     return type(self).__module__ + "." + type(self).__name__
 
-
-Validator = wx4c.get_wx_mod(wx, wx.Validator)
-class TextCtrlValidator(Validator):
-# class TextCtrlValidator(wx.PyValidator):
+class TextCtrlValidator(wx.Validator):
   def __init__(self):
-    super(TextCtrlValidator, self).__init__()
+    wx.Validator.__init__(self)
     self.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
     self.ctrl = None
 
@@ -308,9 +307,9 @@ class TextCtrlValidator(Validator):
     try:
       value = to_unicode(self.ctrl.GetValue())
       if value:
-        reformatted = to_unicode(self.CheckFormat(value))
-      else:
-        reformatted = 'None'
+        reformatted = self.CheckFormat(value)
+        if isinstance(reformatted, str):
+          reformatted = to_unicode(reformatted)
     except UnicodeEncodeError:
       self.ctrl.error_msg = "Only the standard UTF-8 character set is allowed."
       return False
@@ -318,7 +317,7 @@ class TextCtrlValidator(Validator):
       self.ctrl.error_msg = str(e)
       return False
     else:
-      self.ctrl.SetValue(reformatted)
+      self.ctrl.SetValue(value)
       return True
 
   def OnEnter(self, event):

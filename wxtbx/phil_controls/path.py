@@ -17,7 +17,6 @@ WXTBX_PHIL_PATH_DEFAULT_CWD = 32
 
 WxCtrl = wx4c.get_wx_mod(wx, wx.Panel)
 
-
 class PathCtrl(WxCtrl, phil_controls.PhilCtrl):
   def __init__(self, *args, **kwds):
     phil_controls.PhilCtrl.__init__(self)

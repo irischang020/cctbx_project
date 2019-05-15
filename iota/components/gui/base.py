@@ -424,25 +424,22 @@ class BaseOptionsDialog(IOTABaseDialog):
 
     self.Layout()
 
+class Menu(wx.Menu):
+  """ Customizable context menu for IOTA GUI (based on the base Menu class
+      for Phenix GUI) """
 
-class PHILPanelFactory(IOTABaseScrolledPanel):
-  """ Factory class for dialog panel automatically created from PHIL
-  settings """
+  def __init__(self, frame):
+    """ Constructor
+    :param frame: parent window
+    """
+    adopt_init_args(self, locals())
+    super(wx.Menu, self).__init__()
 
-  def __init__(self, parent, objects, layers=None, *args, **kwargs):
-    IOTABaseScrolledPanel.__init__(self, parent=parent, *args, **kwargs)
-
-    self.layers = layers
-
-    for obj in objects:
-      if type(obj) in (list, tuple):
-        pass
-      elif obj.is_scope:
-        self.add_scope_box(obj=obj)
-      elif obj.is_definition:
-        self.add_definition_control(self, obj)
-
-    self.SetupScrolling()
+  def add_commands (self, command_list=None):
+    if not command_list:
+      raise Sorry('Cannot initialize context menu: no commands found!')
+    for (label, function) in command_list :
+      self.add_command(label, function)
 
 
 

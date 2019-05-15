@@ -480,63 +480,6 @@ class TextCtrlWithButtons(CtrlBase):
     main_sizer.AddGrowableCol(1)
     self.SetSizer(main_sizer)
 
-class PHILStringCtrl(CtrlBase):
-  def __init__(self, parent,
-               label='',
-               label_size=(100, -1),
-               label_style='normal',
-               value=''):
-
-    CtrlBase.__init__(self, parent=parent, label_style=label_style)
-
-    self.value = value
-
-    output_box = wx.FlexGridSizer(1, 2, 0, 10)
-    self.txt = wx.StaticText(self, label=label, size=label_size)
-    self.txt.SetFont(self.font)
-    output_box.Add(self.txt)
-
-    self.ctr = strctrl.StrCtrl(self)
-    self.ctr.SetValue(self.value)
-    output_box.Add(self.ctr, flag=wx.EXPAND)
-
-    output_box.AddGrowableCol(1, 1)
-    self.SetSizer(output_box)
-
-class PHILInputCtrl(CtrlBase):
-  def __init__(self, parent,
-               label='', label_size=(100, -1),
-               label_style='normal',
-               value=''):
-
-    CtrlBase.__init__(self, parent=parent, label_style=label_style)
-
-    self.value = value
-
-    output_box = wx.FlexGridSizer(1, 2, 0, 10)
-    self.txt = wx.StaticText(self, label=label, size=label_size)
-    self.txt.SetFont(self.font)
-    output_box.Add(self.txt)
-
-    self.ctr = path.PathCtrl(self, style=path.WXTBX_PHIL_PATH_DIRECTORY|
-                                         path.WXTBX_PHIL_PATH_VIEW_BUTTON|
-                                         path.WXTBX_PHIL_PATH_UPDATE_ON_KILL_FOCUS|
-                                         path.WXTBX_PHIL_PATH_DEFAULT_CWD)
-    self.ctr.SetValue(self.value)
-    output_box.Add(self.ctr, flag=wx.EXPAND)
-
-    # self.btn_browse = wx.Button(self, label='Browse...')
-    # viewmag_bmp = bitmaps.fetch_icon_bitmap('actions', 'viewmag', size=16)
-    # self.btn_mag = wx.BitmapButton(self, bitmap=viewmag_bmp)
-    # output_box.Add(self.btn_browse, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-    # output_box.Add(self.btn_mag, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-
-    output_box.AddGrowableCol(1, 1)
-    self.SetSizer(output_box)
-
-  def reset_default(self):
-    self.ctr.SetValue(self.value)
-
 class InputCtrl(CtrlBase):
   """ Generic panel that will place a text control with a label """
 
@@ -1594,140 +1537,57 @@ class TableCtrl(CtrlBase):
     self.SetSizer(self.sizer)
 
 
-
-class RichTextTableCtrl(CtrlBase):
-  """ Generic panel will place a table w/ x and y labels
-      Data must be a list of lists for multi-column tables """
-
-  def __init__(self, parent,
-               clabels=None,
-               rlabels=None,
-               contents=None,
-               label_style='normal',
-               content_style='teletype bold'):
-
-    CtrlBase.__init__(self, parent=parent, label_style=label_style,
-                      content_style=content_style)
-
-    # Generate column widths
-    if clabels:
-      col_w = [len(l)+3 for l in clabels]
-    else:
-      col_w = [len(i)+3 for i in contents[0]]
-    for row in contents:
-      for item in row:
-        idx = row.index(item)
-        item_width = len(item) + 3
-        col_w[idx] = item_width if item_width > col_w[idx] else col_w[idx]
-
-    # Generate row label width
-    row_w = 0
-    for rlabel in rlabels:
-      rlabel_width = len(rlabel) + 3
-      row_w = rlabel_width if rlabel_width > row_w else row_w
-
-    # Generate table
-    if clabels:
-      table_txt = ' ' * row_w
-      for l in clabels:
-        idx = clabels.index(l)
-        spacer = ' ' * (col_w[idx] - len(l))
-        label = l + spacer
-        table_txt += label
-      table_txt += '\n'
-    else:
-      table_txt = ''
-
-    lines = []
-    for l in rlabels:
-      # Set row label
-      spacer = ' ' * (row_w - len(l))
-      line = l + spacer
-
-      # Add data to table
-      c_index = rlabels.index(l)
-      row_contents = contents[c_index]
-      for item in row_contents:
-        i_idx = row_contents.index(item)
-        spacer = ' ' * (col_w[i_idx] - len(item))
-        if item is None:
-          line += spacer
-        else:
-          line += item + spacer
-
-      lines.append(line)
-
-    table_txt += '\n'.join(lines)
-
-    # Generate RichTextCtrl
-    self.ctr = wx.richtext.RichTextCtrl(self, style=wx.NO_BORDER |
-                                                    wx.TE_DONTWRAP |
-                                                    wx.richtext.RE_READONLY)
-    self.ctr.BeginLineSpacing(lineSpacing=15)
-    self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_TELETYPE,
-                         wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
-
-    self.ctr.BeginFont(self.cfont)
-    self.ctr.SetValue(value=table_txt)
-    self.ctr.SetBackgroundColour(self.GetBackgroundColour())
-
-    # Create sizer and add control to it
-    self.sizer = wx.BoxSizer()
-    self.sizer.Add(self.ctr, 1, flag=wx.EXPAND)
-    self.SetSizer(self.sizer)
-
-    self.Layout()
-
-class WidgetFactory(object):
-  ''' Class that will automatically make widgets for automated dialog making '''
-  w_args = [
-    'text',
-    'path',
-    'choice',
-    'checkbox',
-    'input_list'
-  ]
-
-  w_kwargs = [
-    'grid',
-    'browse_btn',
-    'mag_btn',
-    'onChange',
-    'onUpdate',
-    'onToggle',
-  ]
-
-  def __init__(self):
-    pass
-
-  @staticmethod
-  def make_widget(parent, object, label):
-
-
-    wtype = object.type.phil_type
-    wstyle = object.style
-
-    label = label.replace('_', ' ').capitalize() + ": "
-
-    if wtype == 'path':  # Two styles only: single line w/ Browse, or input list
-      if wstyle == 'input_list':
-        widget = FileListCtrl(parent=parent)
-      else:
-        widget = PHILInputCtrl(parent=parent, label=label)
-
-    elif wtype == 'str':
-      item = ' '.join([w.value for w in object.words])
-      widget = PHILStringCtrl(parent=parent, label=label, value=item)
-
-    elif wtype == 'choice':
-      choices = [w.value for w in object.words]
-      widget = PHILChoiceCtrl(parent=parent, choices=choices, label=label,
-                              allow_none=False)
-    elif wtype in ('int', 'float'):
-      widget = SpinCtrl(parent=parent, label=label)
-    elif wtype == 'bool':
-      widget = wx.CheckBox(parent=parent, label=label)
-    else:
-      widget = InputCtrl(parent=parent, label=label, buttons=False)
-
-    return widget
+# class WidgetFactory(object):
+#   ''' Class that will automatically make widgets for automated dialog making '''
+#   w_args = [
+#     'text',
+#     'path',
+#     'choice',
+#     'checkbox',
+#     'input_list'
+#   ]
+#
+#   w_kwargs = [
+#     'grid',
+#     'browse_btn',
+#     'mag_btn',
+#     'onChange',
+#     'onUpdate',
+#     'onToggle',
+#   ]
+#
+#   def __init__(self):
+#     pass
+#
+#   @staticmethod
+#   def make_widget(parent, object, label):
+#
+#
+#     wtype = object.type.phil_type
+#     wstyle = object.style
+#
+#     label = label.replace('_', ' ').capitalize() + ": "
+#
+#     if wtype == 'path':  # Two styles only: single line w/ Browse, or input list
+#       if wstyle == 'input_list':
+#         widget = FileListCtrl(parent=parent)
+#       else:
+#         widget = PHILInputCtrl(parent=parent, label=label)
+#
+#     elif wtype == 'str':
+#       item = ' '.join([w.value for w in object.words])
+#       widget = PHILStringCtrl(parent=parent, label=label, value=item)
+#
+#     elif wtype == 'choice':
+#       choices = [w.value for w in object.words]
+#       from iota.components.gui.phil_controls import PHILChoiceCtrl
+#       widget = PHILChoiceCtrl(parent=parent, choices=choices, label=label,
+#                               allow_none=False)
+#     elif wtype in ('int', 'float'):
+#       widget = SpinCtrl(parent=parent, label=label)
+#     elif wtype == 'bool':
+#       widget = wx.CheckBox(parent=parent, label=label)
+#     else:
+#       widget = InputCtrl(parent=parent, label=label, buttons=False)
+#
+#     return widget
