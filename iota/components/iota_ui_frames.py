@@ -1,5 +1,6 @@
 from __future__ import division, print_function, absolute_import
 from past.builtins import range
+from six.moves import range
 
 '''
 Author      : Lyubimov, A.Y.
