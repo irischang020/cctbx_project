@@ -21,11 +21,6 @@ import numpy as np
 from collections import Counter
 import math
 
-try:  # for Py3 compatibility
-  import itertools.izip as zip
-except ImportError:
-  pass
-
 from libtbx import easy_pickle as ep
 from cctbx import crystal, uctbx, statistics
 from cctbx.sgtbx.lattice_symmetry import metric_subgroups
