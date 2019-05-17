@@ -54,9 +54,8 @@ def parse_command_args():
 class IOTAMainApp(wx.App):
   ''' App to launch the main GUI window  '''
 
-  def __init__(self, *args, **kwargs):
-    self.frame = None
-    super(IOTAMainApp, self).__init__(*args, **kwargs)
+class MainApp(wx.App):
+  """ App to launch the main GUI window  """
 
   def OnInit(self):
     from platform import python_version
