@@ -396,10 +396,10 @@ class PRIMEThread(Thread):
       cmd = 'prime.run {} {}'.format(prime_file, cmd_args)
 
       try:
-        # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
-        self.job = CustomRun(command=cmd,
-                             join_stdout_stderr=True)
-        self.job.run()
+        easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+        # self.job = CustomRun(command=cmd,
+        #                      join_stdout_stderr=True)
+        # self.job.run()
         prime_info = self.get_prime_stats()
       except Exception as e:
         print ("LIVE PRIME ERROR: ", e)
