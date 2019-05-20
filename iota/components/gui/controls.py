@@ -1531,57 +1531,24 @@ class TableCtrl(CtrlBase):
         self.sizer.Add(cell)
 
 
-# class WidgetFactory(object):
-#   ''' Class that will automatically make widgets for automated dialog making '''
-#   w_args = [
-#     'text',
-#     'path',
-#     'choice',
-#     'checkbox',
-#     'input_list'
-#   ]
-#
-#   w_kwargs = [
-#     'grid',
-#     'browse_btn',
-#     'mag_btn',
-#     'onChange',
-#     'onUpdate',
-#     'onToggle',
-#   ]
-#
-#   def __init__(self):
-#     pass
-#
-#   @staticmethod
-#   def make_widget(parent, object, label):
-#
-#
-#     wtype = object.type.phil_type
-#     wstyle = object.style
-#
-#     label = label.replace('_', ' ').capitalize() + ": "
-#
-#     if wtype == 'path':  # Two styles only: single line w/ Browse, or input list
-#       if wstyle == 'input_list':
-#         widget = FileListCtrl(parent=parent)
-#       else:
-#         widget = PHILInputCtrl(parent=parent, label=label)
-#
-#     elif wtype == 'str':
-#       item = ' '.join([w.value for w in object.words])
-#       widget = PHILStringCtrl(parent=parent, label=label, value=item)
-#
-#     elif wtype == 'choice':
-#       choices = [w.value for w in object.words]
-#       from iota.components.gui.phil_controls import PHILChoiceCtrl
-#       widget = PHILChoiceCtrl(parent=parent, choices=choices, label=label,
-#                               allow_none=False)
-#     elif wtype in ('int', 'float'):
-#       widget = SpinCtrl(parent=parent, label=label)
-#     elif wtype == 'bool':
-#       widget = wx.CheckBox(parent=parent, label=label)
-#     else:
-#       widget = InputCtrl(parent=parent, label=label, buttons=False)
-#
-#     return widget
+  @staticmethod
+  def make_widget(parent, object, label):
+    wtype = object.type.phil_type
+    wstyle = object.style
+
+    if wtype == 'path':  # Two styles only: single line w/ Browse, or input list
+      if wstyle == 'input_list':
+        widget = FileListCtrl(parent=parent)
+      else:
+        widget = InputCtrl(parent=parent, label=label, buttons=True)
+    elif wtype in ('str', 'unit_cell', 'space_group'):
+      widget = InputCtrl(parent=parent, label=label, buttons=False)
+    elif wtype == 'choice':
+      widget = ChoiceCtrl(parent=parent, choices=['blah', 'bleh', 'pfui'],
+                          label=label)
+    elif wtype in ('int', 'float'):
+      widget = SpinCtrl(parent=parent, label=label)
+    elif wtype == 'bool':
+      widget = wx.CheckBox(parent=parent, label=label)
+
+    return widget
