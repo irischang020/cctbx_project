@@ -1534,8 +1534,6 @@ class TableCtrl(CtrlBase):
         cell.SetFont(self.cfont)
         self.sizer.Add(cell)
 
-    self.SetSizer(self.sizer)
-
 
 class RichTextTableCtrl(CtrlBase):
   """ Generic panel will place a table w/ x and y labels
