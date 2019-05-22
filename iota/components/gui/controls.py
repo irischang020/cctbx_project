@@ -1524,11 +1524,11 @@ class TableCtrl(CtrlBase):
       # Add data to table
       c_index = rlabels.index(l)
       for item in contents[c_index]:
+        if item is None:
+          item = ''
         cell = wx.StaticText(self, label=item)
         cell.SetFont(self.cfont)
         self.sizer.Add(cell)
-
-    self.SetSizer(self.sizer)
 
 
 # class WidgetFactory(object):

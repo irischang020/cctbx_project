@@ -1,6 +1,10 @@
-IOTA v1.4.001 - GUI update
+IOTA v1.4.002 - GUI update
 
-04.02.2019
+05.21.2019
 
-1. Moved GUI base, controls, and dialogs modules from components folder to
-components/gui; change affects PRIME and simtbx GUIs as well
+0. Brought up to date with some bugfixes in master
+
+1. Validated TextCtrl:
+    - validation for path control
+    - validation for space group control
+    - fixed validation for number control (wasn't returning value)

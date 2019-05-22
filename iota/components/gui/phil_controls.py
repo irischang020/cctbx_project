@@ -200,7 +200,8 @@ class PHILBaseDefPanel(wx.Panel, gui.IOTADefinitionCtrl):
   def ShowError(self, e):
     err = self.error_btn.user_data
     wx.MessageBox(caption='Format Error!',
-                  message=str(err), style=wx.ICON_EXCLAMATION)
+                  message=str(err),
+                  style=wx.ICON_EXCLAMATION|wx.STAY_ON_TOP)
 
   # def onToggle(self, e):
   #   """ Event handler for checkbox click
@@ -306,6 +307,7 @@ class ValidatedTextCtrl(wx.TextCtrl):
   def CreateValidator(self):
     return gui.TextCtrlValidator().Clone()
 
+
 class ValidatedStringCtrl(ValidatedTextCtrl):
   def __init__(self, *args, **kwargs):
     super(ValidatedStringCtrl, self).__init__(*args, **kwargs)
@@ -328,15 +330,77 @@ class ValidatedStringCtrl(ValidatedTextCtrl):
     return self._max_len
 
   def CheckFormat(self, value):
-    if ("$" in value):
+    if "$" in value:
       raise ValueError("The dollar symbol ($) may not be used here.")
-    elif (len(value) > self.GetMaxLength()):
+    elif len(value) > self.GetMaxLength():
       raise ValueError("Value must be {} characters or less."
                        "".format(self.GetMaxLength()))
-    elif (len(value) < self.GetMinLength()):
+    elif len(value) < self.GetMinLength():
       raise ValueError("Value must be at least {} characters."
                        "".format(self.GetMinLength()))
     return value
+
+
+class ValidatedPathCtrl(ValidatedTextCtrl):
+  def __init__(self, *args, **kwargs):
+    super(ValidatedPathCtrl, self).__init__(*args, **kwargs)
+
+    self.read = self.GetParent().read
+    self.write = self.GetParent().write
+
+  def CheckFormat(self, value=None):
+    """ A hacky way to validate path syntax in a platform-independent way
+    Args:
+      value: path as string
+    Returns: value if validated, raises ValueError if not
+    """
+
+    import errno
+
+    # Just in case, check that entered path is string or unicode
+    if not isinstance(value, str) and not isinstance(value, unicode):
+      raise ValueError('Path must be a string!')
+
+    # Check each path component for OS errors
+    # Strip Windows-specific drive specifier (e.g., `C:\`) if it exists
+    _, pathname = os.path.splitdrive(value)
+
+    # Define directory guaranteed to exist
+    root_dirname = os.environ.get('HOMEDRIVE', 'C:') \
+      if sys.platform == 'win32' else os.path.sep
+    assert os.path.isdir(root_dirname)
+
+    # Append a path separator to this directory if needed
+    root_dirname = root_dirname.rstrip(os.path.sep) + os.path.sep
+
+    # Validate each path component
+    for pathname_part in pathname.split(os.path.sep):
+      try:
+        os.lstat(root_dirname + pathname_part)
+      except OSError as e:
+        if hasattr(e, 'winerror'):
+          if e.winerror == 123:
+            raise ValueError("{} is not a valid Windows path!"
+                             "".format(value))
+        elif e.errno in {errno.ENAMETOOLONG, errno.ERANGE}:
+          raise ValueError("{} is not a valid Posix path!"
+                           "".format(value))
+
+    # Check permissions
+    permission_errors = []
+    if os.path.isdir(value):
+      dirname = value
+    else:
+      dirname = os.path.dirname(value)
+    if self.read and not os.access(dirname, os.R_OK):
+      permission_errors.append('Read permission denied!')
+    if self.write and not os.access(dirname, os.W_OK):
+      permission_errors.append('Write permission denied!')
+    if permission_errors:
+      raise ValueError('Permission errors for {}:\n{}'
+                       ''.format(dirname, '\n'.join(permission_errors)))
+    return value
+
 
 class ValidatedNumberCtrl(ValidatedTextCtrl):
   def __init__(self, *args, **kwargs):
@@ -409,14 +473,35 @@ class ValidatedNumberCtrl(ValidatedTextCtrl):
       raise ValueError("String entries are not allowed! Enter {}, None, "
                        "or Auto.".format(suggested_type))
     elif value > self.GetMaxValue():
-      print ('DEBUG: VALUE = ', value, type(value))
-      print ('DEBUG: MAX   = ', self.GetMaxValue(), type(self.GetMaxValue()))
-
       raise ValueError("Value ({}) must be less than the maximum of {}."
                        "".format(value, self.GetMaxValue()))
     elif value < self.GetMinValue():
       raise ValueError("Value ({}) must be more than the minimum of {}."
                        "".format(value, self.GetMinValue()))
+
+    return value
+
+
+class ValidatedSpaceGroupCtrl(ValidatedTextCtrl):
+  def __init__(self, *args, **kwargs):
+    super(ValidatedSpaceGroupCtrl, self).__init__(*args, **kwargs)
+
+  def CheckFormat(self, value):
+    """ Check that the entry is a valid space group notation
+    Args:
+      value: Space group symbol and/or number
+    Returns: value if validated, raises ValueError if not
+    """
+
+    from cctbx import crystal
+    try:
+      sym = crystal.symmetry(space_group_symbol=str(value))
+    except RuntimeError as e:
+      raise ValueError('Invalid space group entry:\n{}'.format(e))
+
+    # Return space group symbol even if number is entered
+    print ('DEBUG: SG = ', str(sym.space_group_info()))
+    return str(sym.space_group_info())
 
 
 # ------------------------------- PHIL Buttons ------------------------------- #
@@ -461,26 +546,22 @@ class PHILPathCtrl(PHILBaseDefPanel):
     PHILBaseDefPanel.__init__(self, parent=parent, phil_object=phil_object,
                               label_size=label_size, cols=4, vgap=0)
 
-    self.ctr = wx.TextCtrl(self)
-    self.SetStringValue(phil_object=phil_object)
-    self.ctrl_sizer.add_labeled_widget(widget=self.ctr, label=label,
-                                       expand=True, label_size=label_size)
-    self.ctrl_sizer.add_growable(cols=[2])
-
-    self.btn_browse = wx.Button(self, label='Browse...')
-    viewmag_bmp = bitmaps.fetch_icon_bitmap('actions', 'viewmag', size=16)
-    self.btn_mag = wx.BitmapButton(self, bitmap=viewmag_bmp)
-    self.ctrl_sizer.add_widget(self.btn_browse)
-    self.ctrl_sizer.add_widget(self.btn_mag)
-
-    # Determine folder or file browsing
+    # Extract relevant styles
     phil_styles = phil_object.style.split(':') if phil_object.style else []
     if len(phil_styles) > 1:
       self.is_file = bool([('file' in i) for i in phil_styles])
       self.is_folder = bool([('folder' in i) for i in phil_styles])
+      self.read = bool([('read' in i) for i in phil_styles])
+      self.write = bool([('write' in i) for i in phil_styles])
     else:
       self.is_file = ('file' in phil_styles[0])
       self.is_folder = ('folder' in phil_styles[0])
+      self.read = ('read' in phil_styles[0])
+      self.write = ('write' in phil_styles[0])
+
+    # If neither read-only nor write-only is specified, read/write is enabled
+    if not self.read and not self.write:
+      self.read = self.write = True
 
     # Set defaultfile and wildcard parameters for file dialog
     self.defaultfile = defaultfile
@@ -494,6 +575,20 @@ class PHILPathCtrl(PHILBaseDefPanel):
       if bool(bool_wc):
         wc_card = phil_styles[bool_wc.index(True)]
         self.defaultfile = wc_card.split('=')[1]
+
+    # Create path control
+    self.ctr = ValidatedPathCtrl(self)
+    self.SetStringValue(phil_object=phil_object)
+    self.ctrl_sizer.add_labeled_widget(widget=self.ctr, label=label,
+                                       expand=True, label_size=label_size)
+    self.ctrl_sizer.add_growable(cols=[2])
+
+    # Create browse and view buttons
+    self.btn_browse = wx.Button(self, label='Browse...')
+    viewmag_bmp = bitmaps.fetch_icon_bitmap('actions', 'viewmag', size=16)
+    self.btn_mag = wx.BitmapButton(self, bitmap=viewmag_bmp)
+    self.ctrl_sizer.add_widget(self.btn_browse)
+    self.ctrl_sizer.add_widget(self.btn_mag)
 
     # Bindings
     self.Bind(wx.EVT_BUTTON, self.OnBrowse, self.btn_browse)
@@ -521,7 +616,6 @@ class PHILPathCtrl(PHILBaseDefPanel):
       self.PopupMenu(browse_menu)
       browse_menu.Destroy()
 
-
   def _open_folder_dialog(self):
     dlg = wx.DirDialog(self, "Choose folder:", style=wx.DD_DEFAULT_STYLE)
     if dlg.ShowModal() == wx.ID_OK:
@@ -539,6 +633,7 @@ class PHILPathCtrl(PHILBaseDefPanel):
     if dlg.ShowModal() == wx.ID_OK:
       filepath = dlg.GetPaths()[0]
       self.ctr.SetValue(filepath)
+
 
 class PHILStringCtrl(PHILBaseDefPanel):
   """ Control for the PHIL string type """
@@ -561,6 +656,30 @@ class PHILStringCtrl(PHILBaseDefPanel):
 
   def GetStringValue(self):
     return self.ctr.GetValue()
+
+
+class PHILSpaceGroupCtrl(PHILBaseDefPanel):
+  """ Control for the PHIL string type """
+
+  def __init__(self, parent, phil_object, label='', label_size=wx.DefaultSize):
+    PHILBaseDefPanel.__init__(self, parent=parent, phil_object=phil_object,
+                              label_size=label_size,
+                              rows=1, cols=2, vgap=0, hgap=10)
+
+    self.ctr = ValidatedSpaceGroupCtrl(self)
+    self.SetStringValue(phil_object=phil_object)
+    self.ctrl_sizer.add_labeled_widget(widget=self.ctr, label=label,
+                                       expand=True, label_size=label_size)
+    self.ctrl_sizer.add_growable(cols=[2])
+
+  def SetStringValue(self, phil_object):
+    values = [w.value for w in phil_object.words]
+    value = '\n'.join(values)
+    self.ctr.SetValue(value)
+
+  def GetStringValue(self):
+    return self.ctr.GetValue()
+
 
 class PHILChoiceCtrl(PHILBaseDefPanel):
   """ Choice control for PHIL choice item, with label """
@@ -725,12 +844,13 @@ class WidgetFactory(object):
   ]
 
   widget_types = {
-    'path'      : PHILPathCtrl     ,
+    'path'        : PHILPathCtrl     ,
     # 'input_list': PHILFileListCtrl ,
-    'str'       : PHILStringCtrl   ,
-    'choice'    : PHILChoiceCtrl   ,
-    'number'    : PHILNumberCtrl   ,
-    'bool'      : PHILCheckBoxCtrl
+    'str'         : PHILStringCtrl   ,
+    'choice'      : PHILChoiceCtrl   ,
+    'number'      : PHILNumberCtrl   ,
+    'bool'        : PHILCheckBoxCtrl,
+    'space_group' : PHILSpaceGroupCtrl
   }
 
   def __init__(self):
@@ -739,7 +859,6 @@ class WidgetFactory(object):
   @staticmethod
   def make_widget(parent, phil_object, label_size=wx.DefaultSize,
                   widget_types=widget_types):
-
 
     wtype = phil_object.type.phil_type
     wstyle = phil_object.style
