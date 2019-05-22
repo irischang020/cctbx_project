@@ -307,9 +307,10 @@ class TextCtrlValidator(wx.Validator):
     try:
       value = to_unicode(self.ctrl.GetValue())
       if value:
-        reformatted = self.CheckFormat(value)
-        if isinstance(reformatted, str):
-          reformatted = to_unicode(reformatted)
+        reformatted = to_unicode(self.CheckFormat(value))
+      else:
+        reformatted = to_unicode(value)
+      print ('debug: reformatted = ', reformatted)
     except UnicodeEncodeError:
       self.ctrl.error_msg = "Only the standard UTF-8 character set is allowed."
       return False
@@ -317,7 +318,7 @@ class TextCtrlValidator(wx.Validator):
       self.ctrl.error_msg = str(e)
       return False
     else:
-      self.ctrl.SetValue(value)
+      self.ctrl.SetValue(reformatted)
       return True
 
   def OnEnter(self, event):

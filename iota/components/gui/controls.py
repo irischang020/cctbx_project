@@ -1534,8 +1534,6 @@ class TableCtrl(CtrlBase):
         cell.SetFont(self.cfont)
         self.sizer.Add(cell)
 
-    self.SetSizer(self.sizer)
-
 
 # class WidgetFactory(object):
 #   ''' Class that will automatically make widgets for automated dialog making '''
