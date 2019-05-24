@@ -660,6 +660,14 @@ class MainWindow(IOTABaseFrame):
 
     self.Close()
 
+  def onClose(self, e):
+
+    self.DestroyChildren()
+
+    for child in self.GetChildren():
+      print ('DEBUG: ', child)
+
+    e.Skip()
 # ----------------------------  Processing Window ---------------------------  #
 
 class LogTab(wx.Panel):

@@ -7,9 +7,8 @@ Last Changed: 04/02/2019
 Description : IOTA GUI initialization module
 '''
 
-import sys
-
 import wx
+from wxtbx import wx4_compatibility as wx4c
 
 from libtbx import Auto
 from libtbx.utils import Sorry, to_unicode, to_str
@@ -47,7 +46,6 @@ class IOTAPHILCtrl(object):
     self.expert_level = phil_object.expert_level
     if self.expert_level is None:
       self.expert_level = 0
-
 
   def __str__(self):
     return type(self).__name__ + (" ({})".format(self.name))
@@ -284,9 +282,12 @@ class WidgetHandlerMixin(object):
   def __str__(self):
     return type(self).__module__ + "." + type(self).__name__
 
-class TextCtrlValidator(wx.Validator):
+
+Validator = wx4c.get_wx_mod(wx, wx.Validator)
+class TextCtrlValidator(Validator):
+# class TextCtrlValidator(wx.PyValidator):
   def __init__(self):
-    wx.Validator.__init__(self)
+    super(TextCtrlValidator, self).__init__()
     self.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
     self.ctrl = None
 
@@ -309,8 +310,7 @@ class TextCtrlValidator(wx.Validator):
       if value:
         reformatted = to_unicode(self.CheckFormat(value))
       else:
-        reformatted = to_unicode(value)
-      print ('debug: reformatted = ', reformatted)
+        reformatted = 'None'
     except UnicodeEncodeError:
       self.ctrl.error_msg = "Only the standard UTF-8 character set is allowed."
       return False
