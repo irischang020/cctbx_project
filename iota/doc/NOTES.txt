@@ -8,3 +8,10 @@ IOTA v1.4.002 - GUI update
     - validation for path control
     - validation for space group control
     - fixed validation for number control (wasn't returning value)
+
+05. 24.2019
+
+0. Renamed some base classes
+
+1. Validated TextCtrl
+    - fixed up space group control

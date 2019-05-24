@@ -178,7 +178,8 @@ class IOTABaseScrolledPanel(ScrolledPanel):
     self.main_sizer = wx.BoxSizer(wx.VERTICAL)
     self.SetSizer(self.main_sizer)
 
-class BaseDialog(wx.Dialog):
+
+class FormattedDialog(wx.Dialog):
   def __init__(self, parent, style=wx.DEFAULT_DIALOG_STYLE,
                label_style='bold',
                content_style='normal',
@@ -188,29 +189,43 @@ class BaseDialog(wx.Dialog):
     self.main_window = parent
 
     self.envelope = wx.BoxSizer(wx.VERTICAL)
-    self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-    self.envelope.Add(self.main_sizer, 1, flag=wx.EXPAND | wx.ALL, border=5)
     self.SetSizer(self.envelope)
 
     if label_style == 'normal':
-      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                          wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
     elif label_style == 'bold':
-      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                          wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
     elif label_style == 'italic':
-      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL)
+      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                          wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL)
     elif label_style == 'italic_bold':
-      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD)
+      self.font = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                          wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD)
 
     if content_style == 'normal':
-      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                           wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
     elif content_style == 'bold':
-      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                           wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
     elif content_style == 'italic':
-      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL)
+      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                           wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL)
     elif content_style == 'italic_bold':
-      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD)
+      self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_DEFAULT,
+                           wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD)
 
-class BaseBackendDialog(BaseDialog):
+
+class IOTABaseDialog(FormattedDialog):
+  def __init__(self, *args, **kwargs):
+    super(IOTABaseDialog, self).__init__(*args, **kwargs)
+
+    self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+    self.envelope.Add(self.main_sizer, 1, flag=wx.EXPAND | wx.ALL, border=5)
+
+class BaseBackendDialog(IOTABaseDialog):
   def __init__(self, parent, phil,
                backend_name = 'BACKEND',
                target=None,
@@ -219,10 +234,10 @@ class BaseBackendDialog(BaseDialog):
                opt_size=(500, 500),
                phil_size=(500, 500),
                *args, **kwargs):
-    BaseDialog.__init__(self, parent,
-                        content_style=content_style,
-                        label_style=label_style,
-                        *args, **kwargs)
+    IOTABaseDialog.__init__(self, parent,
+                            content_style=content_style,
+                            label_style=label_style,
+                            *args, **kwargs)
 
     self.parent = parent
     self.target_phil = target
@@ -313,12 +328,12 @@ class BaseBackendDialog(BaseDialog):
                                      write_param_file=False)
     self.target_phil = default_phil.as_str()
 
-class BaseOptionsDialog(BaseDialog):
+class BaseOptionsDialog(IOTABaseDialog):
   ''' Test class to work out AutoPHIL, etc. '''
 
   def __init__(self, parent, input, *args, **kwargs):
     dlg_style = wx.CAPTION | wx.CLOSE_BOX | wx.RESIZE_BORDER | wx.STAY_ON_TOP
-    BaseDialog.__init__(self, parent, style=dlg_style, *args,  **kwargs)
+    IOTABaseDialog.__init__(self, parent, style=dlg_style, *args, **kwargs)
 
     self.parent = parent
 

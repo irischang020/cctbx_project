@@ -17,7 +17,7 @@ from wx.lib.agw.floatspin import FloatSpin
 from wxtbx import bitmaps
 
 from libtbx.utils import Sorry, to_unicode
-from libtbx.phil import find_scope
+from libtbx.phil import find_scope, parse
 
 from iota.components import gui
 from iota.components.gui import base
@@ -241,6 +241,14 @@ class PHILBaseDefPanel(wx.Panel, gui.IOTADefinitionCtrl):
   #       widget = self.__getattribute__(item[0])
   #       widget.Enable()
   #       widget.SetValue(item[1])
+
+
+class PHILBaseDialog(base.FormattedDialog):
+  """ Base dialog class for PHIL-formatted settings """
+  def __init__(self, parent, style=wx.DEFAULT_DIALOG_STYLE, *args, **kwargs):
+    super(PHILBaseDialog, self).__init__(parent, style=style, *args, **kwargs)
+    self.phil_sizer = PHILSizer(self)
+    self.envelope.Add(self.phil_sizer, 1, flag=wx.EXPAND | wx.ALL, border=5)
 
 # ------------------------------- PHIL Widgets ------------------------------- #
 
@@ -493,15 +501,24 @@ class ValidatedSpaceGroupCtrl(ValidatedTextCtrl):
     Returns: value if validated, raises ValueError if not
     """
 
+    # Attempt to create a space group object; if symbol or number are
+    # invalid, this will fail
     from cctbx import crystal
-    try:
-      sym = crystal.symmetry(space_group_symbol=str(value))
-    except RuntimeError as e:
-      raise ValueError('Invalid space group entry:\n{}'.format(e))
+    from iota.components.iota_utils import makenone
+    value = makenone(value)       # Convert to Nonetype if None or Null string
 
-    # Return space group symbol even if number is entered
-    print ('DEBUG: SG = ', str(sym.space_group_info()))
-    return str(sym.space_group_info())
+    if value:
+      try:
+        sym = crystal.symmetry(space_group_symbol=str(value))
+      except RuntimeError as e:
+        raise ValueError('Invalid space group entry:\n{}'.format(e))
+
+      # Return space group symbol even if number is entered
+      sg = sym.space_group_info()
+    else:
+      sg = None
+
+    return str(sg)
 
 
 # ------------------------------- PHIL Buttons ------------------------------- #
@@ -509,9 +526,11 @@ class ValidatedSpaceGroupCtrl(ValidatedTextCtrl):
 class PHILDialogButton(ct.IOTAButton):
   ''' Button that launches a wx.Dialog auto-populated with PHIL settings '''
 
-  def __init__(self, parent, scope, label=None, *args, **kwargs):
+  def __init__(self, parent, scope, selection=None, label=None,
+               *args,  **kwargs):
     ct.IOTAButton.__init__(self, parent, *args, **kwargs)
     self.scope = scope
+    self.selection = selection
     self.parent = parent
     self.name = scope.name
     self.phil_strings = None
@@ -519,7 +538,6 @@ class PHILDialogButton(ct.IOTAButton):
     self.is_scope = False
     self.is_definition = False
     self.expert_level = scope.expert_level if scope.expert_level else 0
-
 
     if label is None:
       label = scope.name.replace('_', ' ').capitalize() + "..."
@@ -541,6 +559,7 @@ class PHILFileListCtrl(ct.FileListCtrl, gui.IOTADefinitionCtrl):
 
 class PHILPathCtrl(PHILBaseDefPanel):
   """ Control for the PHIL path type """
+
   def __init__(self, parent, phil_object, label='', label_size=wx.DefaultSize,
                defaultfile='*', wildcard='*'):
     PHILBaseDefPanel.__init__(self, parent=parent, phil_object=phil_object,
@@ -594,9 +613,8 @@ class PHILPathCtrl(PHILBaseDefPanel):
     self.Bind(wx.EVT_BUTTON, self.OnBrowse, self.btn_browse)
 
   def SetStringValue(self, phil_object):
-    values = [w.value for w in phil_object.words]
-    value = '\n'.join(values)
-    self.ctr.SetValue(value)
+    value = self.value_from_words(phil_object=phil_object)[0]
+    self.ctr.SetValue(str(value))
 
   def GetStringValue(self):
     return self.ctr.GetValue()
@@ -650,9 +668,10 @@ class PHILStringCtrl(PHILBaseDefPanel):
     self.ctrl_sizer.add_growable(cols=[2])
 
   def SetStringValue(self, phil_object):
-    values = [w.value for w in phil_object.words]
-    value = '\n'.join(values)
-    self.ctr.SetValue(value)
+    value = self.value_from_words(phil_object=phil_object)[0]
+    if type(value) in (list, tuple):
+      value = ' '.join(value)
+    self.ctr.SetValue(str(value))
 
   def GetStringValue(self):
     return self.ctr.GetValue()
@@ -673,9 +692,8 @@ class PHILSpaceGroupCtrl(PHILBaseDefPanel):
     self.ctrl_sizer.add_growable(cols=[2])
 
   def SetStringValue(self, phil_object):
-    values = [w.value for w in phil_object.words]
-    value = '\n'.join(values)
-    self.ctr.SetValue(value)
+    value = self.value_from_words(phil_object=phil_object)[0]
+    self.ctr.SetValue(str(value))
 
   def GetStringValue(self):
     return self.ctr.GetValue()
@@ -902,6 +920,7 @@ class PHILDialogPanel(PHILBasePanel):
                            *args, **kwargs)
 
     for obj in scope.active_objects():
+      print ('DEBUG: OBJ = ', obj)
       if type(obj) in (list, tuple):
         pass
       else:
@@ -912,7 +931,6 @@ class PHILDialogPanel(PHILBasePanel):
           self.add_definition_control(parent=self, obj=obj,
                                       label_size=max_label_size)
     self.redraw_by_expert_level()
-
 
   def _get_max_label_size(self, scope):
     # Get font info for string-to-pixels conversion
@@ -942,12 +960,12 @@ class PHILDialogPanel(PHILBasePanel):
     if paths is None:
       paths = []
     if phil_object.is_scope:
-      for object in phil_object.objects:
-        paths = self.get_all_path_names(object, paths)
+      for obj in phil_object.objects:
+        paths = self.get_all_path_names(obj, paths)
         paths.extend(paths)
     elif phil_object.is_definition:
       full_path = phil_object.full_path()
-      if not full_path in paths:
+      if full_path not in paths:
         paths.append(full_path)
     return paths
 
@@ -961,13 +979,15 @@ class PHILDialogPanel(PHILBasePanel):
     parent.controls.append(wdg)
     self.__setattr__(obj.name, wdg)
 
-
   def add_scope_box(self, obj):
     obj_name = obj.full_path().split('.')[-1]
     label = obj.alias_path() if obj.alias_path() else obj_name
 
     # Make scope panel
     panel = PHILBaseScopePanel(self, obj, box=True, label=label)
+    panel_name = 'p_{}'.format(obj_name)
+    self.__setattr__(panel_name, panel)
+
     self.main_sizer.Add(panel, flag=wx.ALL | wx.EXPAND, border=10)
     self.controls.append(panel)
 
@@ -997,13 +1017,12 @@ class PHILDialogPanel(PHILBasePanel):
   def open_phil_dialog(self, e):
     btn = e.GetEventObject()
     title = btn.name.replace('_', ' ').capitalize()
-    phil_dlg = PHILDialog(btn.parent, scope=btn.scope, title=title)
+    # phil_dlg = PHILDialog(btn.parent, scope=btn.scope, title=title)
 
-    if phil_dlg.run():
-      btn.phil_strings = phil_dlg.phil_panel.GetPHIL()
-      print('PHIL sub-DIALOG DEBUG: OK!!')
-    else:
-      print('PHIL sub-DIALOG DEBUG: CANCEL!!')
+    with PHILDialog(btn.parent, scope=btn.scope, selection=btn.selection,
+                    title=title) as phil_dlg:
+      if phil_dlg.ShowModal() == wx.ID_OK:
+        btn.phil_strings = phil_dlg.phil_panel.GetPHIL()
 
   @classmethod
   def from_scope_objects(cls, parent, scope):
@@ -1027,26 +1046,29 @@ class PHILDialogPanel(PHILBasePanel):
     pass
 
 
-class PHILDialog(base.BaseDialog):
+class PHILDialog(PHILBaseDialog):
   ''' Dialog auto-populated with PHIL settings '''
 
   def __init__(self, parent, scope, selection=None, *args, **kwargs):
     dlg_style = wx.CAPTION | wx.CLOSE_BOX | wx.RESIZE_BORDER | wx.STAY_ON_TOP
-    base.BaseDialog.__init__(self, parent, style=dlg_style, *args,  **kwargs)
+    super(PHILDialog, self).__init__(parent, style=dlg_style, *args, **kwargs)
 
     self.phil_strings = None
-    self.scope = scope
-
-    self.phil_sizer = PHILSizer(parent=parent)
-    self.envelope.Replace(self.main_sizer, self.phil_sizer)
 
     if selection:
-      scopes = [find_scope(scope, scp) for scp in selection]
-      scope = scope.customized_copy(objects=scopes)
-    else:
-      scope = scope
+      scopes = []
+      for sel in selection:
+        scope = find_scope(scope, sel)
+        if scope:
+          scopes.append(scope)
+        else:
+          print ('PHIL ERROR: Scope "{}" not found!'.format(sel))
 
-    self.phil_panel = PHILDialogPanel.from_scope(self, scope=scope)
+      self.scope = scope.customized_copy(objects=scopes)
+    else:
+      self.scope = scope
+
+    self.phil_panel = PHILDialogPanel.from_scope(self, scope=self.scope)
     self.phil_sizer.add_panel(self.phil_panel)
 
     # Dialog control
@@ -1089,21 +1111,6 @@ class PHILDialog(base.BaseDialog):
       self.SetMinSize((500, 300))
     self.SetSize(wx.Size(dlg_width, dlg_height))
 
-  def run (self) :
-    if self.ShowModal() == wx.ID_OK:
-
-      # Get formatted PHIL string
-      self.phil_strings = self.phil_panel.GetPHIL()
-      phil_string = '\n'.join(self.phil_strings)
-
-      # Parse and update PHIL object
-      from libtbx.phil import parse
-      self.phil = parse(phil_string)
-
-      return True
-    else :
-      return False
-
   def _collect_errors(self, panel=None):
     """ Go through all controls recursively and collect any format errors """
 
@@ -1111,10 +1118,9 @@ class PHILDialog(base.BaseDialog):
       panel = self.phil_panel
 
     errors = {}
-
     for ctrl in panel.controls:
       if ctrl.is_definition:
-        if hasattr(ctrl.ctr, 'error_msg'):
+        if hasattr(ctrl.ctr, 'error_msg') and ctrl.ctr.error_msg:
           errors[ctrl.name] = ctrl.ctr.error_msg
       elif ctrl.is_scope:
         scope_errors = self._collect_errors(panel=ctrl)
@@ -1131,12 +1137,17 @@ class PHILDialog(base.BaseDialog):
 
     all_errors = self._collect_errors()
     if all_errors:
+      # Check for errors and pop up a message if any are present
       wx.MessageBox(caption='Errors in Settings!',
                     message='Correct all errors to accept the changes.',
                     style=wx.OK|wx.ICON_EXCLAMATION)
+
     else:
-      if self.Validate():
-        self.EndModal(wx.ID_OK)
+      # Get formatted PHIL string, parse, and update the PHIL object
+      self.phil_strings = self.phil_panel.GetPHIL()
+      phil_string = '\n'.join(self.phil_strings)
+      self.phil = parse(phil_string)
+      self.EndModal(wx.ID_OK)
 
   def OnCancel (self, event):
     self.EndModal(wx.ID_CANCEL)
@@ -1146,3 +1157,4 @@ class PHILDialog(base.BaseDialog):
     self.phil_panel.redraw_by_expert_level(expert_level=expert_level)
     self.Layout()
     self.phil_panel.SetupScrolling()
+

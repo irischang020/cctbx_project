@@ -10,6 +10,8 @@ Last Changed: 02/15/2019
 Description : IOTA GUI startup module.
 '''
 
+import os
+
 import wx
 import argparse
 
@@ -46,13 +48,21 @@ def parse_command_args():
             help = 'Run IOTA in silent mode')
   return parser
 
-class MainApp(wx.App):
+class IOTAMainApp(wx.App):
   ''' App to launch the main GUI window  '''
+
+  def __init__(self, *args, **kwargs):
+    self.frame = None
+    super(IOTAMainApp, self).__init__(*args, **kwargs)
+
   def OnInit(self):
 
     from platform import python_version
-    print('Python  : ', python_version())
-    print('wxPython: ', wx.__version__)
+    import matplotlib
+    print('Versions:')
+    print('  Python     : ', python_version())
+    print('  wxPython   : ', wx.__version__)
+    print('  MatPlotLib : ', matplotlib.__version__)
 
     # Initialize IOTA instance
     args, phil_args = parse_command_args().parse_known_args()
@@ -69,6 +79,7 @@ class MainApp(wx.App):
     self.SetTopWindow(self.frame)
     return True
 
+
 if __name__ == '__main__':
-  app = MainApp(0)
-  app.MainLoop()
+  iota = IOTAMainApp(0)
+  iota.MainLoop()

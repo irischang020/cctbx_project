@@ -108,8 +108,11 @@ class InputWindow(IOTABasePanel):
     from iota.components.gui import phil_controls as pct
 
     scope = find_scope(phil_scope, 'indexing')
+    # scope = phil_scope
+    # selection = ['spotfinder', 'indexing', 'integration']
     self.tst_button_dials = pct.PHILDialogButton(parent=self.input,
                                                  scope=scope,
+                                                 # selection=selection,
                                                  label='DIALS options...',
                                                  handler_function=self.onTestDIALSOptions)
     self.input.button_sizer.Add(self.tst_button_dials)
@@ -259,7 +262,8 @@ class MainWindow(IOTABaseFrame):
     self.Bind(wx.EVT_BUTTON, self.onTestDIALSOptions,
               self.input_window.tst_button_dials)
 
-
+    # Event bindings
+    self.Bind(wx.EVT_CLOSE, self.onClose, self)
 
     # File list control bindings
     self.Bind(ulc.EVT_LIST_INSERT_ITEM, self.onItemInserted,
@@ -274,6 +278,9 @@ class MainWindow(IOTABaseFrame):
                           title='Test Options')
     if test.ShowModal() == wx.ID_OK:
       print ('debug: OK!!')
+
+    import time
+    time.sleep(1)
     test.Destroy()
 
   def onTestDIALSOptions(self, e):
@@ -282,18 +289,14 @@ class MainWindow(IOTABaseFrame):
     from libtbx.phil import find_scope
 
     btn = e.GetEventObject()
-    test = pct.PHILDialog(parent=self, scope=btn.scope,
-                          title='Test Spf Options')
-    if test.run():
-      dlg_phil = test.phil
-      new_phil_scope = phil_scope.fetch(source=dlg_phil)
-      new_btn_scope = find_scope(new_phil_scope, btn.scope.name)
-      btn.scope = new_btn_scope
+    with pct.PHILDialog(parent=self, scope=btn.scope, selection=btn.selection,
+                        title='DIALS Options') as test:
 
-      # btn.scope.show()
-
-    else:
-      print ('PHIL DIALOG DEBUG: CANCEL!!')
+      if test.ShowModal() == wx.ID_OK:
+        dlg_phil = test.phil
+        new_phil_scope = phil_scope.fetch(source=dlg_phil)
+        new_btn_scope = find_scope(new_phil_scope, btn.scope.name)
+        btn.scope = new_btn_scope
 
   def onItemInserted(self, e):
     print (self.input_window.input.all_data_images)
@@ -636,7 +639,6 @@ class MainWindow(IOTABaseFrame):
         for path in input_dict['imagepaths']:
           self.input_window.input.add_item(path)
 
-
   def onQuit(self, e):
 
     # Need a try block in case the C++ portion of the proc window doesn't exist
@@ -648,7 +650,6 @@ class MainWindow(IOTABaseFrame):
         info = self.proc_window.info
         info.status = 'aborted'
         info.export_json()
-
 
         # Check if proc_thread exists
         if hasattr(self.proc_window, 'proc_thread'):
@@ -677,6 +678,14 @@ class MainWindow(IOTABaseFrame):
 
     self.Close()
 
+  def onClose(self, e):
+
+    self.DestroyChildren()
+
+    for child in self.GetChildren():
+      print ('DEBUG: ', child)
+
+    e.Skip()
 # ----------------------------  Processing Window ---------------------------  #
 
 class LogTab(wx.Panel):

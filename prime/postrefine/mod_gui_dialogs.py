@@ -15,7 +15,7 @@ from wxtbx import bitmaps
 from iotbx import phil as ip
 
 from iota.components.iota_utils import WxFlags, Capturing
-from iota.components.gui.base import BaseDialog, BaseBackendDialog
+from iota.components.gui.base import IOTABaseDialog, BaseBackendDialog
 import iota.components.gui.controls as ct
 
 # Platform-specific stuff
@@ -417,9 +417,9 @@ class PRIMEAdvancedOptions(PRIMEBaseBackendDialog):
     self.new_prime_phil = ip.parse(prime_phil_text)
     e.Skip()
 
-class PRIMEPreferences(BaseDialog):
+class PRIMEPreferences(IOTABaseDialog):
   def __init__(self, parent, phil=None, *args, **kwargs):
-    BaseDialog.__init__(self, parent, *args, **kwargs)
+    IOTABaseDialog.__init__(self, parent, *args, **kwargs)
 
     self.pparams = phil.extract()
     self.pref_phil = None
@@ -557,7 +557,7 @@ class PRIMEPreferences(BaseDialog):
     e.Skip()
 
 
-class TextFileView(BaseDialog):
+class TextFileView(IOTABaseDialog):
   def __init__(self, parent,
                label_style='bold',
                content_style='normal',
@@ -566,11 +566,11 @@ class TextFileView(BaseDialog):
 
     dlg_style = wx.CAPTION | wx.CLOSE_BOX | wx.RESIZE_BORDER | wx.STAY_ON_TOP
 
-    BaseDialog.__init__(self, parent, style=dlg_style,
-                        label_style=label_style,
-                        content_style=content_style,
-                        size=(600, 500),
-                        *args, **kwargs)
+    IOTABaseDialog.__init__(self, parent, style=dlg_style,
+                            label_style=label_style,
+                            content_style=content_style,
+                            size=(600, 500),
+                            *args, **kwargs)
 
     self.txt_panel = ScrolledPanel(self)
     self.txt_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -582,7 +582,7 @@ class TextFileView(BaseDialog):
     self.txt_panel.SetupScrolling()
     self.main_sizer.Add(self.txt_panel, 1, flag=wx.EXPAND | wx.ALL, border=10)
 
-class RecoveryDialog(BaseDialog):
+class RecoveryDialog(IOTABaseDialog):
 
   def __init__(self,
                parent,
@@ -591,12 +591,12 @@ class RecoveryDialog(BaseDialog):
                *args, **kwargs):
 
     dlg_style = wx.CAPTION | wx.CLOSE_BOX | wx.RESIZE_BORDER | wx.STAY_ON_TOP
-    BaseDialog.__init__(self, parent, style=dlg_style,
-                        label_style=label_style,
-                        content_style=content_style,
-                        size=(400, 400),
-                        title='Recover Completed Run',
-                        *args, **kwargs)
+    IOTABaseDialog.__init__(self, parent, style=dlg_style,
+                            label_style=label_style,
+                            content_style=content_style,
+                            size=(400, 400),
+                            title='Recover Completed Run',
+                            *args, **kwargs)
 
 
     self.pathlist = wx.ListCtrl(self, style=wx.LC_REPORT|wx.LC_SINGLE_SEL)
