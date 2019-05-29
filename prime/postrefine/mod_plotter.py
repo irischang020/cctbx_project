@@ -17,6 +17,7 @@ from matplotlib import gridspec, rc
 from iota.components.gui.plotter import Plotter as IOTAPlotter
 from iota.components.gui.base import IOTABaseFrame
 
+
 class PlotWindow(IOTABaseFrame):
   def __init__(self, parent, id, title, plot_panel=None):
     IOTABaseFrame.__init__(self, parent, id, title)
