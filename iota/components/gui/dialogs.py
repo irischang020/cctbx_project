@@ -15,7 +15,8 @@ from wxtbx import bitmaps
 
 from iotbx import phil as ip
 
-from iota.components.gui.base import IOTABaseDialog, BaseBackendDialog, BaseOptionsDialog
+from iota.components.gui.base import BaseDialog, BaseBackendDialog, \
+  BaseOptionsDialog
 import iota.components.gui.controls as ct
 from iota.components.iota_input import master_phil
 from iota.components.iota_utils import UnicodeCharacters, WxFlags, noneset
