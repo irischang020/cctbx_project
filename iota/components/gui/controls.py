@@ -1534,6 +1534,113 @@ class TableCtrl(CtrlBase):
         cell.SetFont(self.cfont)
         self.sizer.Add(cell)
 
+    self.SetSizer(self.sizer)
+
+
+class RichTextTableCtrl(CtrlBase):
+  """ Generic panel will place a table w/ x and y labels
+      Data must be a list of lists for multi-column tables """
+
+  def __init__(self, parent,
+               clabels=None,
+               rlabels=None,
+               contents=None,
+               label_style='normal',
+               content_style='teletype bold'):
+
+    CtrlBase.__init__(self, parent=parent, label_style=label_style,
+                      content_style=content_style)
+
+    # Generate column widths
+    if clabels:
+      col_w = [len(l)+3 for l in clabels]
+    else:
+      col_w = [len(i)+3 for i in contents[0]]
+    for row in contents:
+      for item in row:
+        idx = row.index(item)
+        item_width = len(item) + 3
+        col_w[idx] = item_width if item_width > col_w[idx] else col_w[idx]
+
+    # Generate row label width
+    row_w = 0
+    for rlabel in rlabels:
+      rlabel_width = len(rlabel) + 3
+      row_w = rlabel_width if rlabel_width > row_w else row_w
+
+    # Generate table
+    if clabels:
+      table_txt = ' ' * row_w
+      for l in clabels:
+        idx = clabels.index(l)
+        spacer = ' ' * (col_w[idx] - len(l))
+        label = l + spacer
+        table_txt += label
+      table_txt += '\n'
+    else:
+      table_txt = ''
+
+    lines = []
+    for l in rlabels:
+      # Set row label
+      spacer = ' ' * (row_w - len(l))
+      line = l + spacer
+
+      # Add data to table
+      c_index = rlabels.index(l)
+      row_contents = contents[c_index]
+      for item in row_contents:
+        i_idx = row_contents.index(item)
+        spacer = ' ' * (col_w[i_idx] - len(item))
+        if item is None:
+          line += spacer
+        else:
+          line += item + spacer
+
+      lines.append(line)
+
+    table_txt += '\n'.join(lines)
+
+    # Generate RichTextCtrl
+    self.ctr = wx.richtext.RichTextCtrl(self, style=wx.NO_BORDER |
+                                                    wx.TE_DONTWRAP |
+                                                    wx.richtext.RE_READONLY)
+    self.ctr.BeginLineSpacing(lineSpacing=15)
+    self.cfont = wx.Font(norm_font_size, wx.FONTFAMILY_TELETYPE,
+                         wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
+
+    self.ctr.BeginFont(self.cfont)
+    self.ctr.SetValue(value=table_txt)
+    self.ctr.SetBackgroundColour(self.GetBackgroundColour())
+
+    # Create sizer and add control to it
+    self.sizer = wx.BoxSizer()
+    self.sizer.Add(self.ctr, 1, flag=wx.EXPAND)
+    self.SetSizer(self.sizer)
+
+    self.Layout()
+
+class WidgetFactory(object):
+  ''' Class that will automatically make widgets for automated dialog making '''
+  w_args = [
+    'text',
+    'path',
+    'choice',
+    'checkbox',
+    'input_list'
+  ]
+
+  w_kwargs = [
+    'grid',
+    'browse_btn',
+    'mag_btn',
+    'onChange',
+    'onUpdate',
+    'onToggle',
+  ]
+
+  def __init__(self):
+    pass
 
 # class WidgetFactory(object):
 #   ''' Class that will automatically make widgets for automated dialog making '''

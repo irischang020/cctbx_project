@@ -1,5 +1,6 @@
 from __future__ import division, print_function, absolute_import
 from past.builtins import range
+from six.moves import range
 
 '''
 Author      : Lyubimov, A.Y.
@@ -7,7 +8,6 @@ Created     : 05/01/2016
 Last Changed: 06/07/2019
 Description : PRIME GUI frames module
 '''
-from __future__ import print_function
 
 import os
 import wx
@@ -32,7 +32,6 @@ import prime.postrefine.mod_gui_dialogs as dlg
 import prime.postrefine.mod_threads as thr
 from prime.postrefine.mod_input import master_phil
 from prime.postrefine.mod_plotter import Plotter, PlotWindow
-from six.moves import range
 
 user = os.getlogin()
 ginp = util.InputFinder()
@@ -642,7 +641,7 @@ class RuntimeTab(wx.Panel):
 
     # Plot mean CC1/2
     meanCC = info['total_cc12']
-    cycles = list(range(len(meanCC)))
+    cycles = range(len(meanCC))
     self.cc_axes.clear()
     self.cc_axes.set_xlim(0, total_cycles)
     self.cc_axes.set_ylim(0, 100)
@@ -651,7 +650,7 @@ class RuntimeTab(wx.Panel):
     # Plot mean completeness and multiplicity
     mean_comp = info['total_completeness']
     mean_mult = info['total_n_obs']
-    cycles = list(range(len(mean_comp)))
+    cycles = range(len(mean_comp))
     self.comp_axes.clear()
     self.mult_axes.clear()
     self.comp_axes.set_xlim(0, total_cycles)
