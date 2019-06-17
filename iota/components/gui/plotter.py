@@ -27,7 +27,6 @@ from mpl_toolkits.mplot3d import Axes3D
 assert cm
 assert colors
 
-from libtbx.utils import to_unicode, Sorry
 from iota.components.gui.base import IOTABaseFrame, IOTABasePanel
 
 class PlotWindow(IOTABaseFrame):

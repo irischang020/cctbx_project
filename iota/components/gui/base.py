@@ -247,14 +247,6 @@ class IOTABaseScrolledPanel(ScrolledPanel):
     self.main_sizer = wx.BoxSizer(wx.VERTICAL)
     self.SetSizer(self.main_sizer)
 
-class IOTABaseScrolledPanel(ScrolledPanel):
-  def __init__(self, parent, *args, **kwargs):
-    ScrolledPanel.__init__(self, parent=parent, id=wx.ID_ANY, size=(800, 500),
-                          *args, **kwargs)
-
-    self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-    self.SetSizer(self.main_sizer)
-
 
 class FormattedDialog(wx.Dialog):
   def __init__(self, parent, style=wx.DEFAULT_DIALOG_STYLE,
@@ -424,48 +416,6 @@ class BaseOptionsDialog(IOTABaseDialog):
                         border=10)
 
     self.Layout()
-
-class Menu(wx.Menu):
-  """ Customizable context menu for IOTA GUI (based on the base Menu class
-      for Phenix GUI) """
-
-  def __init__(self, frame):
-    """ Constructor
-    :param frame: parent window
-    """
-    adopt_init_args(self, locals())
-    super(wx.Menu, self).__init__()
-
-  def add_commands (self, command_list=None):
-    if not command_list:
-      raise Sorry('Cannot initialize context menu: no commands found!')
-    for (label, function) in command_list :
-      self.add_command(label, function)
-
-
-
-  def get_all_path_names(self, phil_object, paths=None):
-    if paths is None:
-      paths = []
-    if phil_object.is_scope:
-      for object in phil_object.objects:
-        paths = self.get_all_path_names(object, paths)
-        paths.extend(paths)
-    elif phil_object.is_definition:
-      full_path = phil_object.full_path()
-      if not full_path in paths:
-        paths.append(full_path)
-    return paths
-
-  def add_definition_control(self, parent, obj):
-    alias = obj.alias_path()
-    label = alias if alias else obj.full_path().split('.')[-1]
-
-    wdg = ct.WidgetFactory.make_widget(parent, obj, label)
-    sizer = parent.GetSizer()
-    sizer.Add(wdg, flag=wx.RIGHT|wx.LEFT|wx.BOTTOM|wx.EXPAND,
-                        border=5)
-    self.__setattr__(label, wdg)
 
 class Menu(wx.Menu):
   """ Customizable context menu for IOTA GUI (based on the base Menu class
