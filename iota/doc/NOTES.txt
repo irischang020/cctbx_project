@@ -9,9 +9,29 @@ IOTA v1.4.002 - GUI update
     - validation for space group control
     - fixed validation for number control (wasn't returning value)
 
-05. 24.2019
+
+05.24.2019
 
 0. Renamed some base classes
 
 1. Validated TextCtrl
     - fixed up space group control
+
+
+06.14.2019
+
+0. Rebased onto master and resolved conflicts
+
+1. Validated TextCtrl
+    - unit cell control - validates obligatory six parameters, which must be
+      numbers
+    - Return None or Auto (depending on None/Auto parameters) if input is
+      whitespace. (Also fixed and streamlined None or Auto ID)
+
+2. Base definition panel
+    - makes control background red if an error, beige if value is not default
+
+
+
+
+***

@@ -237,6 +237,7 @@ class IOTABasePanel(wx.Panel):
     else:
       self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
+    self.SetSizer(self.main_sizer)
 
 class IOTABaseScrolledPanel(ScrolledPanel):
   def __init__(self, parent, *args, **kwargs):

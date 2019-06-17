@@ -22,7 +22,7 @@ from libtbx.phil import find_scope, parse
 from iota.components import gui
 from iota.components.gui import base
 from iota.components.gui import controls as ct
-from iota.components.iota_utils import InputFinder
+from iota.components.iota_utils import InputFinder, makenone
 
 ginp = InputFinder()
 
@@ -150,6 +150,8 @@ class PHILBaseDefPanel(wx.Panel, gui.IOTADefinitionCtrl):
     wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY, *args, **kwargs)
     self.parent = parent
     self.error_btn = None
+    self.ctr = None
+    self.default_value = self.value_from_words(phil_object=phil_object)[0]
 
     # Initialize DefinitionCtrl attributes
     gui.IOTADefinitionCtrl.__init__(self, phil_object=phil_object)
@@ -187,13 +189,13 @@ class PHILBaseDefPanel(wx.Panel, gui.IOTADefinitionCtrl):
   def SetError(self, err):
     self.error_btn.user_data = err
     self.error_btn.Show()
-    self.SetBackgroundColour((252,146,114))
+    self.set_background(is_error=True)
     self.parent.Layout()
     self.Refresh()
 
   def RemoveError(self):
     self.error_btn.Hide()
-    self.SetBackgroundColour(wx.NullColour)
+    self.set_background(is_error=False)
     self.parent.Layout()
     self.Refresh()
 
@@ -202,6 +204,19 @@ class PHILBaseDefPanel(wx.Panel, gui.IOTADefinitionCtrl):
     wx.MessageBox(caption='Format Error!',
                   message=str(err),
                   style=wx.ICON_EXCLAMATION|wx.STAY_ON_TOP)
+
+  def set_background(self, is_error=False):
+    c_err = (215, 48, 31)
+    c_new = (254, 240, 217)
+
+    if is_error:
+      self.ctr.SetBackgroundColour(c_err)
+    else:
+      is_default = (self.ctr.GetValue() == str(self.default_value))
+      if is_default:
+        self.ctr.SetBackgroundColour(wx.NullColour)
+      else:
+        self.ctr.SetBackgroundColour(c_new)
 
   # def onToggle(self, e):
   #   """ Event handler for checkbox click
@@ -290,6 +305,8 @@ class ValidatedTextCtrl(wx.TextCtrl):
     # Apply value if one was passed to control
     if saved_value is not None:
       if type(saved_value) == str:
+        if saved_value.isspace():
+          saved_value = self.parent.ReturnNoneOrAuto(value=saved_value)
         saved_value = to_unicode(saved_value)
       self.SetValue(saved_value)
 
@@ -464,30 +481,85 @@ class ValidatedNumberCtrl(ValidatedTextCtrl):
     except ValueError:
       value = str(value)
 
-    if isinstance(value, str) and value.lower not in ('none', 'auto'):
-      if self._num_type == 'int':
-        suggested_type = 'an integer'
-      elif self._num_type == 'float':
-        suggested_type = 'a float'
-      else:
-        suggested_type = 'a number'
-      if self.parent.UseAuto() and not self.parent.IsOptional():
-        suggested_type += 'or Auto'
-      elif self.parent.IsOptional() and not self.parent.UseAuto():
-        suggested_type += 'or None'
-      elif self.parent.IsOptional() and self.parent.UseAuto():
-        suggested_type += ', None, or Auto'
+    is_none = self.parent.IsOptional()
+    is_auto = self.parent.UseAuto()
 
-      raise ValueError("String entries are not allowed! Enter {}, None, "
-                       "or Auto.".format(suggested_type))
-    elif value > self.GetMaxValue():
-      raise ValueError("Value ({}) must be less than the maximum of {}."
-                       "".format(value, self.GetMaxValue()))
-    elif value < self.GetMinValue():
-      raise ValueError("Value ({}) must be more than the minimum of {}."
-                       "".format(value, self.GetMinValue()))
+    if isinstance(value, str):
+
+      if value.lower() in ('none', 'auto') and (is_auto or is_none):
+        pass         # allow None or Auto through the string filter
+      else:
+        if self._num_type == 'int':
+          suggested_type = 'an integer'
+        elif self._num_type == 'float':
+          suggested_type = 'a float'
+        else:
+          suggested_type = 'a number'
+
+        if is_auto and is_none:
+          suggested_type += ', None, or Auto'
+        elif is_none:
+          suggested_type += 'or None'
+        elif is_auto:
+          suggested_type += ', None, or Auto'
+
+        raise ValueError("String entries are not allowed! Enter {}, None, "
+                         "or Auto.".format(suggested_type))
+    else:
+      if value > self.GetMaxValue():
+        raise ValueError("Value ({}) must be less than the maximum of {}."
+                         "".format(value, self.GetMaxValue()))
+      elif value < self.GetMinValue():
+        raise ValueError("Value ({}) must be more than the minimum of {}."
+                         "".format(value, self.GetMinValue()))
 
     return value
+
+
+class ValidatedUnitCellCtrl(ValidatedTextCtrl):
+  def __init__(self, *args, **kwargs):
+    super(ValidatedUnitCellCtrl, self).__init__(*args, **kwargs)
+
+  def CheckFormat(self, value):
+    """ Check that the entry is a valid unit cell notation
+    Args:
+      value: Unit cell parameters
+    Returns: value if validated, raises ValueError if not
+    """
+    value = makenone(value)
+
+    # Break up string by possible delimiters (set up to handle even a mixture
+    # of delimiters, because you never know)
+    if value:
+      uc = value
+      for dlm in [',', ';', '|', '-', '/']:
+        if uc.count(dlm) > 0:
+          uc = uc.replace(dlm, ' ')
+      uc_params = uc.rsplit()
+
+      error_msg = 'Invalid unit cell entry {}'.format(value)
+
+      # Check if there are six parameters in unit cell (that's as far as
+      # validation will go; the correctness of the unit cell is up to the user)
+      if len(uc_params) != 6:
+        raise ValueError('{}: should be six parameters!'.format(error_msg))
+
+      # Check that every parameter can be converted to float (i.e. that the
+      # parameters are actually all numbers)
+      try:
+        uc_params = [float(p) for p in uc_params]
+      except ValueError as e:
+        if 'invalid literal' in e.message.lower():
+          raise ValueError('{}: unit cell should only contain '
+                           'numbers'.format(error_msg))
+        raise ValueError('{}: {}'.format(error_msg, e.message))
+
+      uc = ' '.join(['{:.2f}'.format(p) for p in uc_params])
+
+    else:
+      uc = None
+
+    return str(uc)
 
 
 class ValidatedSpaceGroupCtrl(ValidatedTextCtrl):
@@ -504,7 +576,6 @@ class ValidatedSpaceGroupCtrl(ValidatedTextCtrl):
     # Attempt to create a space group object; if symbol or number are
     # invalid, this will fail
     from cctbx import crystal
-    from iota.components.iota_utils import makenone
     value = makenone(value)       # Convert to Nonetype if None or Null string
 
     if value:
@@ -656,13 +727,24 @@ class PHILPathCtrl(PHILBaseDefPanel):
 class PHILStringCtrl(PHILBaseDefPanel):
   """ Control for the PHIL string type """
 
-  def __init__(self, parent, phil_object, label='', label_size=wx.DefaultSize):
-    PHILBaseDefPanel.__init__(self, parent=parent, phil_object=phil_object,
+  def __init__(self, parent, phil_object, control=None,
+               label='', label_size=wx.DefaultSize):
+    PHILBaseDefPanel.__init__(self, parent=parent,
+                              phil_object=phil_object,
                               label_size=label_size,
                               rows=1, cols=2, vgap=0, hgap=10)
 
-    self.ctr = ValidatedStringCtrl(self)
+    if not control:
+      control = ValidatedStringCtrl
+
+    self._create_control(control=control, phil_object=phil_object)
+    self._place_control(label, label_size)
+
+  def _create_control(self, control, phil_object):
+    self.ctr = control(self)
     self.SetStringValue(phil_object=phil_object)
+
+  def _place_control(self, label, label_size):
     self.ctrl_sizer.add_labeled_widget(widget=self.ctr, label=label,
                                        expand=True, label_size=label_size)
     self.ctrl_sizer.add_growable(cols=[2])
@@ -677,26 +759,25 @@ class PHILStringCtrl(PHILBaseDefPanel):
     return self.ctr.GetValue()
 
 
-class PHILSpaceGroupCtrl(PHILBaseDefPanel):
-  """ Control for the PHIL string type """
+class PHILSpaceGroupCtrl(PHILStringCtrl):
+  """ Control for the PHIL Space Group, subclassed from PHILStringCtrl """
 
   def __init__(self, parent, phil_object, label='', label_size=wx.DefaultSize):
-    PHILBaseDefPanel.__init__(self, parent=parent, phil_object=phil_object,
-                              label_size=label_size,
-                              rows=1, cols=2, vgap=0, hgap=10)
+    PHILStringCtrl.__init__(self, parent,
+                            label=label,
+                            control=ValidatedSpaceGroupCtrl,
+                            phil_object=phil_object,
+                            label_size=label_size)
 
-    self.ctr = ValidatedSpaceGroupCtrl(self)
-    self.SetStringValue(phil_object=phil_object)
-    self.ctrl_sizer.add_labeled_widget(widget=self.ctr, label=label,
-                                       expand=True, label_size=label_size)
-    self.ctrl_sizer.add_growable(cols=[2])
+class PHILUnitCellCtrl(PHILStringCtrl):
+  """ Control for the PHIL Unit Cell, subclassed from PHILStringCtrl """
 
-  def SetStringValue(self, phil_object):
-    value = self.value_from_words(phil_object=phil_object)[0]
-    self.ctr.SetValue(str(value))
-
-  def GetStringValue(self):
-    return self.ctr.GetValue()
+  def __init__(self, parent, phil_object, label='', label_size=wx.DefaultSize):
+    PHILStringCtrl.__init__(self, parent,
+                            phil_object=phil_object,
+                            control=ValidatedUnitCellCtrl,
+                            label=label,
+                            label_size=label_size)
 
 
 class PHILChoiceCtrl(PHILBaseDefPanel):
@@ -868,7 +949,8 @@ class WidgetFactory(object):
     'choice'      : PHILChoiceCtrl   ,
     'number'      : PHILNumberCtrl   ,
     'bool'        : PHILCheckBoxCtrl,
-    'space_group' : PHILSpaceGroupCtrl
+    'space_group' : PHILSpaceGroupCtrl,
+    'unit_cell'   : PHILUnitCellCtrl
   }
 
   def __init__(self):
@@ -920,7 +1002,6 @@ class PHILDialogPanel(PHILBasePanel):
                            *args, **kwargs)
 
     for obj in scope.active_objects():
-      print ('DEBUG: OBJ = ', obj)
       if type(obj) in (list, tuple):
         pass
       else:
@@ -971,7 +1052,7 @@ class PHILDialogPanel(PHILBasePanel):
 
   def add_definition_control(self, parent, obj, label_size=wx.DefaultSize):
     wdg = WidgetFactory.make_widget(parent, obj, label_size)
-    if obj.type.phil_type in ('str', 'path'):
+    if obj.type.phil_type in ('str', 'unit_cell', 'space_group', 'path'):
       expand = True
     else:
       expand = False

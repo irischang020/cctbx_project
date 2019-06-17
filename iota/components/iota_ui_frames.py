@@ -40,7 +40,7 @@ from iota.components import iota_init as init
 from iota.components.iota_base import ProcInfo
 from iota.components.gui.base import IOTABaseFrame, IOTABasePanel
 from iota.components.iota_analysis import Analyzer
-from iota.components.iota_plotter import Plotter, PlotWindow
+from iota.components.gui.plotter import Plotter, PlotWindow
 import iota.components.iota_input as inp
 import iota.components.gui.controls as ct
 import iota.components.iota_threads as thr
@@ -131,6 +131,8 @@ class InputWindow(IOTABasePanel):
     self.Bind(wx.EVT_BUTTON, self.onImportOptions, self.opt_btn_import)
     self.Bind(wx.EVT_BUTTON, self.onProcessOptions, self.opt_btn_process)
     self.Bind(wx.EVT_BUTTON, self.onAnalysisOptions, self.opt_btn_analysis)
+
+    self.Layout()
 
 
   def onTestDIALSOptions(self, e):

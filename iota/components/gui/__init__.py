@@ -13,6 +13,8 @@ from wxtbx import wx4_compatibility as wx4c
 from libtbx import Auto
 from libtbx.utils import Sorry, to_unicode, to_str
 
+Validator = wx4c.get_wx_mod(wx, wx.Validator)
+
 class IOTAPHILCtrl(object):
   """ Master class for all PHIL-compatible controls used in IOTA UI. Contains
       all the necessary functions for handling PHIL objects, so that GUI
@@ -33,14 +35,20 @@ class IOTAPHILCtrl(object):
     self.type = phil_object.type if phil_object.is_definition else 'scope'
     self.style = phil_object.style
     self.alias = phil_object.alias
-    self.optional = phil_object.optional
 
+    # Some scopes or definitions may be explicitly set as optional
+    if phil_object.optional:
+      self.SetOptional(optional=phil_object.optional)
+    else:
+      if self.is_definition:
+        default_value = self.type.from_words(phil_object.words, phil_object)
+        self.SetOptional(optional=(default_value is None))
+        self.SetUseAuto(enable=(default_value is Auto))
+      else:
+        self.SetOptional(optional=False)
+
+    # Get PHIL object string
     self.phil_string = phil_object.as_str()
-
-    # None and Auto settings; this variable will determine if a blank entry (
-    # e.g. a line of spaces) will cause an AutoType (True) or NoneType (
-    # False) object to be returned by an IOTAPHILCtrl.
-    self._blank_is_auto = False
 
     # Set expert level
     self.expert_level = phil_object.expert_level
@@ -57,23 +65,31 @@ class IOTAPHILCtrl(object):
     return getattr(self, "_blank_is_auto", False)
 
   def ReturnNoneOrAuto(self, value=None):
-    """ Return an AutoType object if value is Auto; returns a NonType object
-        if value is None or blank (blank can be a string of spaces). If value
-        is mistakenly not a blank, None, or Auto, this function will return a
-        NoneType object """
-    if str(value).replace(' ', '') == '':
+    """ Return an AutoType object if value is Auto or blank; returns a NonType
+        object if value is None or blank (blank can be a string of spaces). If
+        value is not a blank, None, or Auto, this function will return the
+        original value """
+
+    if value.isspace():
       if self.IsOptional():
         if self.UseAuto():
           return Auto
-        return None
-      else :
-        raise Sorry("Value required for {}.".format(self.GetName()))
+        else:
+          return None
+      else:
+        raise Sorry("Value required for {}.".format(self.GetPHILName()))
     elif str(value).lower() == 'auto':
-      return Auto
+      if self.UseAuto():
+        return Auto
+      else:
+        return None
     elif str(value).lower() == 'none':
-      return None
+      if self.IsOptional():
+        return None
+      else:
+        raise Sorry("Value required for {}.".format(self.GetPHILName()))
     else:
-      return None
+      return value
 
   def SetOptional(self, optional=True):
     if not optional:
@@ -283,9 +299,7 @@ class WidgetHandlerMixin(object):
     return type(self).__module__ + "." + type(self).__name__
 
 
-Validator = wx4c.get_wx_mod(wx, wx.Validator)
 class TextCtrlValidator(Validator):
-# class TextCtrlValidator(wx.PyValidator):
   def __init__(self):
     super(TextCtrlValidator, self).__init__()
     self.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
@@ -305,12 +319,12 @@ class TextCtrlValidator(Validator):
 
   def Validate(self, parent):
     self.ctrl = self.GetWindow()
+    self.parent = parent
+
     try:
-      value = to_unicode(self.ctrl.GetValue())
-      if value:
-        reformatted = to_unicode(self.CheckFormat(value))
-      else:
-        reformatted = 'None'
+      value = self.parent.ReturnNoneOrAuto(value=self.ctrl.GetValue())
+      reformatted = to_unicode(str(value))
+
     except UnicodeEncodeError:
       self.ctrl.error_msg = "Only the standard UTF-8 character set is allowed."
       return False
