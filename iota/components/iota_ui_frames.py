@@ -244,9 +244,6 @@ class MainWindow(IOTABaseFrame):
     self.Bind(wx.EVT_BUTTON, self.onTestDIALSOptions,
               self.input_window.tst_button_dials)
 
-    # Event bindings
-    self.Bind(wx.EVT_CLOSE, self.onClose, self)
-
     # File list control bindings
     self.Bind(ulc.EVT_LIST_INSERT_ITEM, self.onItemInserted,
               self.input_window.input)

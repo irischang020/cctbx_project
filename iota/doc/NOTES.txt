@@ -27,11 +27,14 @@ IOTA v1.4.002 - GUI update
       numbers
     - Return None or Auto (depending on None/Auto parameters) if input is
       whitespace. (Also fixed and streamlined None or Auto ID)
+    - Fixed bug where if error was fixed, it was still registered as error
 
 2. Base definition panel
     - makes control background red if an error, beige if value is not default
 
 
+Known issue: need to keep default settings throughout, and store changes in a
+different attribute
 
 
 ***

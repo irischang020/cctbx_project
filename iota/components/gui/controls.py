@@ -18,10 +18,7 @@ import wx.lib.agw.knobctrl as kc
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin, ColumnSorterMixin
 from wxtbx import metallicbutton as mb
 from wxtbx import bitmaps
-from wxtbx.phil_controls import choice, strctrl, path
 import wx.lib.buttons as btn
-
-from libtbx.utils import to_unicode
 
 from iota.components.iota_utils import noneset, InputFinder
 from iota.components.iota_threads import ImageViewerThread

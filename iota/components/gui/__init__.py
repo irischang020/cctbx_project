@@ -322,9 +322,10 @@ class TextCtrlValidator(Validator):
     self.parent = parent
 
     try:
-      value = self.parent.ReturnNoneOrAuto(value=self.ctrl.GetValue())
+      raw_value = self.ctrl.GetValue()
+      adj_value = self.parent.ReturnNoneOrAuto(value=raw_value)
+      value = self.ctrl.CheckFormat(value=str(adj_value))
       reformatted = to_unicode(str(value))
-
     except UnicodeEncodeError:
       self.ctrl.error_msg = "Only the standard UTF-8 character set is allowed."
       return False
@@ -332,6 +333,7 @@ class TextCtrlValidator(Validator):
       self.ctrl.error_msg = str(e)
       return False
     else:
+      self.ctrl.error_msg = None
       self.ctrl.SetValue(reformatted)
       return True
 

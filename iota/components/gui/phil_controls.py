@@ -554,7 +554,7 @@ class ValidatedUnitCellCtrl(ValidatedTextCtrl):
                            'numbers'.format(error_msg))
         raise ValueError('{}: {}'.format(error_msg, e.message))
 
-      uc = ' '.join(['{:.2f}'.format(p) for p in uc_params])
+      uc = ' '.join([str(p) for p in uc_params])
 
     else:
       uc = None
@@ -753,6 +753,8 @@ class PHILStringCtrl(PHILBaseDefPanel):
     value = self.value_from_words(phil_object=phil_object)[0]
     if type(value) in (list, tuple):
       value = ' '.join(value)
+    elif 'unit_cell' in type(value).__name__:
+      value = ' '.join([str(i) for i in value.parameters()])
     self.ctr.SetValue(str(value))
 
   def GetStringValue(self):
